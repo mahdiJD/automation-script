@@ -18,8 +18,12 @@ LOG_DIR="/home/admini/laravel_log/$PROJECT_NAME"
 TODAY=$(date '+%Y-%m-%d')
 
 # مسیر کامل فایل لاگ روزانه
-LOG_FILE="$LOG_DIR/schedule-$TODAY.log"
+SCHEDULE_LOG_FILE="$LOG_DIR/schedule-$TODAY.log"
+JOB_LOG_FILE="$LOG_DIR/job-$TODAY.log"
 
+MEMORY=64
+REST=10
+TIMEOUT=20
 # ===== اجرای کد =====
 
 # ساخت مسیر لاگ اگر وجود نداشت
@@ -30,15 +34,26 @@ OUTPUT=$(php "$ARTISAN" schedule:run 2>&1)
 
 # بررسی خروجی
 if [ -z "$OUTPUT" ]; then
-    echo "$(date '+%Y-%m-%d %H:%M:%S') No jobs executed" >> "$LOG_FILE"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') No jobs executed" >> "$SCHEDULE_LOG_FILE"
 else
     # نوشتن هر خط خروجی همراه با زمان
     while IFS= read -r line
     do
-        echo "$(date '+%Y-%m-%d %H:%M:%S') $line" >> "$LOG_FILE"
+        echo "$(date '+%Y-%m-%d %H:%M:%S') $line" >> "$SCHEDULE_LOG_FILE"
     done <<< "$OUTPUT"
 fi
 
 # حذف لاگ‌های قدیمی‌تر از 30 روز
 find "$LOG_DIR" -type f -name "*.log" -mtime +30 -exec rm {} \;
 
+JOB_OUTPUT=$(php "$ARTISAN" queue:work --stop-when-empty --memory="$MEMORY" --rest="$REST" --timeout="$TIMEOUT")
+
+if [ -z "$JOB_OUTPUT" ]; then
+    echo "$(date '+%Y-%m-%d %H:%M:%S') Non job in queue" >> "$JOB_LOG_FILE"
+else
+    # نوشتن هر خط خروجی همراه با زمان
+    while IFS= read -r line
+    do
+        echo "$(date '+%Y-%m-%d %H:%M:%S') $line" >> "$JOB_LOG_FILE"
+    done <<< "$JOB_OUTPUT"
+fi
