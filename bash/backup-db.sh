@@ -52,7 +52,6 @@ DB_PASS=$(grep DB_PASSWORD "$ENV_FILE" | cut -d '=' -f2)
 mkdir -p "$BACKUP_DIR"
 BACKUP_FILE="$BACKUP_DIR/${DB_NAME}_$DATE.sql"
 
-# اجرای بکاپ با sudo یا su
 if [[ "$BACKUP_METHOD" == "sudo" ]]; then
     echo "$SUDO_PASS" | sudo -S mysqldump -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" > "$BACKUP_FILE"
 else
