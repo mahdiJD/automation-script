@@ -1,0 +1,54 @@
+stages:
+  - test
+
+variables:
+  DB_CONNECTION: mariadb
+  DB_HOST: mariadb
+  DB_PORT: 3306
+  DB_DATABASE: test_evaluation_panel
+  DB_USERNAME: newuser
+  DB_PASSWORD: mypassword
+  APP_ENV: testing
+  APP_DEBUG: true
+
+image: php:8.3-fpm
+
+services:
+  - name: mariadb:10.11
+    alias: mariadb
+    command: ["--default-authentication-plugin=mysql_native_password"]
+    variables:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: test_evaluation_panel
+      MYSQL_USER: newuser
+      MYSQL_PASSWORD: mypassword
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - vendor/
+
+test_job:
+  stage: test
+  before_script:
+    - apt-get update -yqq
+    - apt-get install -yqq git unzip zip libzip-dev mariadb-client
+    - cp .env.testing .env
+    - unzip vendor.zip
+    - chmod 775 -R ./vendor
+    - php artisan key:generate
+    - echo "Waiting for MariaDB to be ready..."
+    - until nc -z mariadb 3306; do echo "Waiting for mariadb..."; sleep 2; done
+    - php artisan migrate:fresh
+  script:
+    - echo "Starting CI pipeline..."
+    - echo "$(date)" > time.txt
+    - ./vendor/bin/phpunit --log-junit=tests/reports/junit.xml > test_output.txt
+    - echo "Tests completed at $(date)" >> time.txt
+  artifacts:
+    when: always
+    paths:
+      - test_output.txt
+      - tests/reports/junit.xml
+      - time.txt
+    expire_in: 1 week
