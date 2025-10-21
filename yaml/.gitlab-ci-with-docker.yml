@@ -32,13 +32,14 @@ test_job:
   stage: test
   before_script:
     - apt-get update -yqq
-    - apt-get install -yqq git unzip zip libzip-dev mariadb-client
+    - apt-get install -yqq git unzip zip libzip-dev mariadb-client libpng-dev libonig-dev libxml2-dev
+    - docker-php-source extract
+    - docker-php-ext-install pdo_mysql zip mbstring
+    - docker-php-source delete
     - cp .env.testing .env
-    - unzip vendor.zip
+    - unzip -o vendor.zip -d vendor/
     - chmod 775 -R ./vendor
     - php artisan key:generate
-    - echo "Waiting for MariaDB to be ready..."
-    - until nc -z mariadb 3306; do echo "Waiting for mariadb..."; sleep 2; done
     - php artisan migrate:fresh
   script:
     - echo "Starting CI pipeline..."
